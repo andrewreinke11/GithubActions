@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stuff Quest</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        #stuff { font-size: 2em; }
+        button { margin: 10px; padding: 10px 20px; }
+    </style>
+</head>
+<body>
+    <h1>Stuff Quest</h1>
+    <p>Reach 1,000,000 stuff!</p>
+    <div id="stuff" data-initial-stuff="{{ stuff }}">{{ stuff }}</div>
+    <button id="clickBtn">Click for Stuff</button>
+    <h2>Upgrades</h2>
+    <div id="upgrades">
+        {% for upgrade in upgrades %}
+        <div>
+            <span>{{ upgrade.name }}: Power {{ upgrade.power }}, Cost {{ upgrade.currentCost | round(2) }}</span>
+            <button class="buyBtn" data-id="{{ loop.index0 }}">Buy</button>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div id="victory" style="display:none; margin-top:1rem; font-size:1.5rem; color:green;">
+        🎉 Victory! You reached 1,000,000 stuff! 🎉
+    </div>
+
+    <script>
+        function updateStuff() {
+            const stuffElement = document.getElementById('stuff');
+            stuffElement.innerText = stuffElement.dataset.initialStuff;
+        }
+
+        document.getElementById('clickBtn').addEventListener('click', function() {
+            fetch('/click', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('stuff').innerText = data.stuff;
+                    checkVictory();
+                });
+        });
+
+        document.querySelectorAll('.buyBtn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const id = this.getAttribute('data-id');
+                fetch(`/buy/${id}`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            document.getElementById('stuff').innerText = data.stuff;
+                            location.reload(); // Reload to update upgrades
+                        } else {
+                            alert('Not enough stuff!');
+                        }
+                        checkVictory();
+                    });
+            });
+        });
+
+        // Auto click every second
+        setInterval(function() {
+            fetch('/auto_click', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('stuff').innerText = data.stuff;
+                    checkVictory();
+                });
+        }, 1000);
+
+        function checkVictory() {
+            fetch('/won')
+                .then(response => response.json())
+                .then(data => {
+                    const victory = document.getElementById('victory');
+                    if (data.won) {
+                        victory.style.display = 'block';
+                    } else {
+                        victory.style.display = 'none';
+                    }
+                });
+        }
+
+        // Initial check and loop
+        checkVictory();
+        setInterval(checkVictory, 2000);
+    </script>
+</body>
+</html>
